@@ -107,46 +107,22 @@ func getNthPrime(n int) int {
 		return 2
 	}
 
-	// Using Sieve of Atkin to generate primes with a larger multiplier
+	// Using Sieve of Sundaram to generate primes
 	limit := n * int(math.Log(float64(n))) * 10
-	primes := sieveOfAtkin(limit)
+	primes := sieveOfSundaram(limit)
 
 	return primes[n-1]
 }
 
-func sieveOfAtkin(limit int) []int {
-	isPrime := make([]bool, limit+1)
-	sqrtLimit := int(math.Sqrt(float64(limit)))
+func sieveOfSundaram(limit int) []int {
+	// Adjust the limit for Sundaram
+	n := (limit - 1) / 2
+	sieve := make([]bool, n+1)
 
-	// Mark sieve[n] is True if one of the following is True:
-	// a) n = (4*x*x)+(y*y) has odd number of solutions, i.e., there exist odd number of distinct pairs (x, y) that satisfy the equation
-	// b) n = (3*x*x)+(y*y) has odd number of solutions
-	// c) n = (3*x*x)-(y*y) has odd number of solutions and x > y
-	for x := 1; x <= sqrtLimit; x++ {
-		for y := 1; y <= sqrtLimit; y++ {
-			n := (4 * x * x) + (y * y)
-			if n <= limit && (n%12 == 1 || n%12 == 5) {
-				isPrime[n] = !isPrime[n]
-			}
-
-			n = (3 * x * x) + (y * y)
-			if n <= limit && n%12 == 7 {
-				isPrime[n] = !isPrime[n]
-			}
-
-			n = (3 * x * x) - (y * y)
-			if x > y && n <= limit && n%12 == 11 {
-				isPrime[n] = !isPrime[n]
-			}
-		}
-	}
-
-	// Mark all multiples of squares as non-prime
-	for r := 5; r <= sqrtLimit; r++ {
-		if isPrime[r] {
-			for i := r * r; i <= limit; i += r * r {
-				isPrime[i] = false
-			}
+	for i := 1; i <= n; i++ {
+		j := i
+		for ; i+j+2*i*j <= n; j++ {
+			sieve[i+j+2*i*j] = true
 		}
 	}
 
@@ -155,13 +131,9 @@ func sieveOfAtkin(limit int) []int {
 	if limit >= 2 {
 		primes = append(primes, 2)
 	}
-	if limit >= 3 {
-		primes = append(primes, 3)
-	}
-
-	for i := 5; i <= limit; i++ {
-		if isPrime[i] {
-			primes = append(primes, i)
+	for i := 1; i <= n; i++ {
+		if !sieve[i] {
+			primes = append(primes, 2*i+1)
 		}
 	}
 
