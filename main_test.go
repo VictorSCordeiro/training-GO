@@ -29,7 +29,7 @@ func TestShowRequestPathSimple(t *testing.T) {
 }
 
 // Test case for the /prime/xxx endpoint
-func TestGetNthPrime(t *testing.T) {
+func TestGetNthPrime1(t *testing.T) {
 	expectedPrime := 61
 	req := httptest.NewRequest("GET", "http://127.0.0.1:3333/prime/18", nil)
 	rec := httptest.NewRecorder()
