@@ -5,8 +5,9 @@
 export CGO_ENABLED=0
 
 # Here the Go code is compiled in the current directory and an executable name 'www' is generated without a file extension
+# GOOS=linux added to enable www to run on linux docker
 build:
-	go build -o www
+	GOOS=linux go build -o www
 
 #runs the tests in the directory
 test:
@@ -17,3 +18,11 @@ test:
 #./www executes the compiled binary.
 run: build
 	./www
+
+
+# extending the make file with docker targets
+docker-build:
+	docker build -t www .
+
+docker-run:
+	docker run -p 3333:3333 www
