@@ -66,6 +66,7 @@ func main() {
 	}
 }
 
+/* 1st version
 func getNthPrime(n int) int {
 	if n <= 0 {
 		return 0
@@ -95,39 +96,70 @@ func isPrime(num int) bool {
 		}
 	}
 	return true
-}
+}*/
 
-/*
-// Improved functionality to find Nth prime number
-func isPrimeSieve(num int, primes []int) bool {
-	maxDiv := int(math.Sqrt(float64(num)))
-	for _, prime := range primes {
-		if prime > maxDiv {
-			break
-		}
-		if num%prime == 0 {
-			return false
-		}
+func getNthPrime(n int) int {
+	if n <= 0 {
+		return 0
 	}
-	return true
+
+	if n == 1 {
+		return 2
+	}
+
+	// Using Sieve of Atkin to generate primes with a larger multiplier
+	limit := n * int(math.Log(float64(n))) * 10
+	primes := sieveOfAtkin(limit)
+
+	return primes[n-1]
 }
 
-func sieveOfEratosthenes(limit int) []int {
+func sieveOfAtkin(limit int) []int {
 	isPrime := make([]bool, limit+1)
-	for i := 2; i <= limit; i++ {
-		isPrime[i] = true
-	}
+	sqrtLimit := int(math.Sqrt(float64(limit)))
 
-	for i := 2; i <= int(math.Sqrt(float64(limit))); i++ {
-		if isPrime[i] {
-			for j := i * i; j <= limit; j += i {
-				isPrime[j] = false
+	// Mark sieve[n] is True if one of the following is True:
+	// a) n = (4*x*x)+(y*y) has odd number of solutions, i.e., there exist odd number of distinct pairs (x, y) that satisfy the equation
+	// b) n = (3*x*x)+(y*y) has odd number of solutions
+	// c) n = (3*x*x)-(y*y) has odd number of solutions and x > y
+	for x := 1; x <= sqrtLimit; x++ {
+		for y := 1; y <= sqrtLimit; y++ {
+			n := (4 * x * x) + (y * y)
+			if n <= limit && (n%12 == 1 || n%12 == 5) {
+				isPrime[n] = !isPrime[n]
+			}
+
+			n = (3 * x * x) + (y * y)
+			if n <= limit && n%12 == 7 {
+				isPrime[n] = !isPrime[n]
+			}
+
+			n = (3 * x * x) - (y * y)
+			if x > y && n <= limit && n%12 == 11 {
+				isPrime[n] = !isPrime[n]
 			}
 		}
 	}
 
+	// Mark all multiples of squares as non-prime
+	for r := 5; r <= sqrtLimit; r++ {
+		if isPrime[r] {
+			for i := r * r; i <= limit; i += r * r {
+				isPrime[i] = false
+			}
+		}
+	}
+
+	// Collect primes
 	primes := make([]int, 0)
-	for i := 2; i <= limit; i++ {
+	if limit >= 2 {
+		primes = append(primes, 2)
+	}
+	if limit >= 3 {
+		primes = append(primes, 3)
+	}
+
+	for i := 5; i <= limit; i++ {
 		if isPrime[i] {
 			primes = append(primes, i)
 		}
@@ -135,4 +167,3 @@ func sieveOfEratosthenes(limit int) []int {
 
 	return primes
 }
-*/
