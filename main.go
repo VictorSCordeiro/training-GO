@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"runtime"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -107,35 +109,90 @@ func getNthPrime(n int) int {
 		return 2
 	}
 
-	// Using Sieve of Sundaram to generate primes
+	// Using Sieve of Atkin to generate primes with a larger multiplier
 	limit := n * int(math.Log(float64(n))) * 10
-	primes := sieveOfSundaram(limit)
+	primes := sieveOfAtkinParallel(limit)
 
 	return primes[n-1]
 }
 
-func sieveOfSundaram(limit int) []int {
-	// Adjust the limit for Sundaram
-	n := (limit - 1) / 2
-	sieve := make([]bool, n+1)
+func sieveOfAtkinParallel(limit int) []int {
+	isPrime := make([]bool, limit+1)
+	sqrtLimit := int(math.Sqrt(float64(limit)))
 
-	for i := 1; i <= n; i++ {
-		j := i
-		for ; i+j+2*i*j <= n; j++ {
-			sieve[i+j+2*i*j] = true
+	// Calculate the number of CPU cores
+	numCPU := runtime.NumCPU()
+
+	// Use a WaitGroup to wait for all goroutines to finish
+	var wg sync.WaitGroup
+
+	// Use a Mutex to synchronize access to the isPrime array
+	var mutex sync.Mutex
+
+	// Calculate the range each goroutine should handle
+	rangeSize := sqrtLimit / numCPU
+
+	for i := 0; i < numCPU; i++ {
+		start := i * rangeSize
+		end := (i + 1) * rangeSize
+		if i == numCPU-1 {
+			end = sqrtLimit
 		}
+
+		// Launch a goroutine for each segment
+		wg.Add(1)
+		go func(start, end int) {
+			defer wg.Done()
+			markPrimesInRange(start, end, sqrtLimit, limit, &isPrime, &mutex)
+		}(start, end)
 	}
+
+	// Wait for all goroutines to finish
+	wg.Wait()
 
 	// Collect primes
 	primes := make([]int, 0)
 	if limit >= 2 {
 		primes = append(primes, 2)
 	}
-	for i := 1; i <= n; i++ {
-		if !sieve[i] {
-			primes = append(primes, 2*i+1)
+	if limit >= 3 {
+		primes = append(primes, 3)
+	}
+
+	for i := 5; i <= limit; i++ {
+		mutex.Lock()
+		if isPrime[i] {
+			primes = append(primes, i)
 		}
+		mutex.Unlock()
 	}
 
 	return primes
+}
+
+func markPrimesInRange(start, end, sqrtLimit, limit int, isPrime *[]bool, mutex *sync.Mutex) {
+	for x := 1; x <= sqrtLimit; x++ {
+		for y := start; y <= end; y++ {
+			n := (4 * x * x) + (y * y)
+			if n <= limit && (n%12 == 1 || n%12 == 5) {
+				mutex.Lock()
+				(*isPrime)[n] = !(*isPrime)[n]
+				mutex.Unlock()
+			}
+
+			n = (3 * x * x) + (y * y)
+			if n <= limit && n%12 == 7 {
+				mutex.Lock()
+				(*isPrime)[n] = !(*isPrime)[n]
+				mutex.Unlock()
+			}
+
+			n = (3 * x * x) - (y * y)
+			if x > y && n <= limit && n%12 == 11 {
+				mutex.Lock()
+				(*isPrime)[n] = !(*isPrime)[n]
+				mutex.Unlock()
+			}
+		}
+	}
 }
